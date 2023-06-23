@@ -25,7 +25,7 @@ const Product = ({ title, price, image, description, category }) => {
             {title}
           </Card.Title>
           <Card.Subtitle className="mb-2 text-muted">
-            {price}
+            Price: {price}
           </Card.Subtitle>
           <Card.Subtitle className="mb-2 text-muted">
             Category: {category}

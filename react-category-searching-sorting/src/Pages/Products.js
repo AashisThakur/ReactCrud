@@ -1,88 +1,148 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Product from "../components/Product";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
+import { Row, Col } from "react-bootstrap";
 import Button from "react-bootstrap/Button";
+import Container from 'react-bootstrap/Container';
+import Form from 'react-bootstrap/Form';
+import '../css/sidepanel.css';
 
 const Products = () => {
   const [users, setUserData] = useState([]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
+  const [API_DATA, setAPIData] = useState([]);
+  const [sortByPrice, setSort] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [sortedData, setSortedData] = useState([]);
 
-  //   const maxPage;
   let productPerPage = 8;
   let start;
   let end;
 
-  const fetchData = async () => {
+  const fetchData = async (category = activeCategory) => {
     try {
-
       const response = await fetch("https://api.escuelajs.co/api/v1/products");
       const data = await response.json();
+
+      const filteredData = category === "All" ? data : data.filter(item => item.category.name === category);
+
+      let sortedData = [...filteredData];
+
+      if (sortByPrice === "lowToHigh") {
+        sortedData.sort((a, b) => a.price - b.price);
+      } else if (sortByPrice === "highToLow") {
+        sortedData.sort((a, b) => b.price - a.price);
+      }
+
+      setAPIData(filteredData);
+      setSortedData(sortedData);
+
       start = page * productPerPage;
       end = start + productPerPage;
-      const dataValue = data.slice(start,end)
-      console.log(dataValue);
+      const dataValue = sortedData.slice(start, end);
       setUserData(dataValue);
-
     } catch (e) {
       console.log(e);
     }
   };
 
   useEffect(() => {
-    const fetchDataList = async () => {
-      await fetchData();
-    };
-    fetchDataList();
-  }, [page]);
+    fetchData();
+  }, []);
 
-  
-  const handlePrevPage = () => {
-    if (page > 0) {
-      setPage((prevPage) => prevPage - 1);
-    }
+  useEffect(() => {
+    start = page * productPerPage;
+    end = start + productPerPage;
+    const dataValue = sortedData.slice(start, end);
+    setUserData(dataValue);
+  }, [page, sortedData]);
+
+  const handleCategoryChange = (item) => {
+    setActiveCategory(item);
+    fetchData(item);
   };
 
-  const handleNextPage = () => {
-    setPage((prevPage) => prevPage + 1);
+  const handleSort = (e) => {
+    const selectedSort = e.target.value;
+    setSort(selectedSort);
+    fetchData(activeCategory);
   };
 
   return (
-    <>
-      <div>
-        <h1>Products Page</h1>
-        {users.length > 0 && (
-            <>
-          <Row>
-            {users.map((user) => (
-              <Col sm={6} md={4} lg={3} key={user.id}>
-                <Product
-                  title={user.title}
-                  price={user.price}
-                  image={user.images[0]}
-                  description={user.description}
-                  category={user.category.name}
-                />
-              </Col>
-            ))}
-          </Row>
-          <div className="mt-4">
-              <Button
-                variant="secondary"
-                onClick={handlePrevPage}
-                disabled={page === 0}
-              >
-                Previous
-              </Button>{" "}
-              <span>Page: {page + 1}</span>{" "}
-              <Button variant="primary" onClick={handleNextPage}>
-                Next
+    <Row>
+      <Col md={2} className="sidepanel bg-dark text-light">
+        <Container className="mt-5">
+          <Col>
+            <Form className="d-flex">
+              <Form.Control
+                type="search"
+                placeholder="Search"
+                className="me-2"
+                aria-label="Search"
+              />
+              <Button>
+                Search
               </Button>
+            </Form>
+          </Col>
+        </Container>
+        <div className="categories">
+          <h4 className="mt-5">Categories :</h4>
+          {["All", ...new Set(API_DATA.map(item => item.category.name))].map((item) => (
+            <p
+              onClick={() => handleCategoryChange(item)}
+              key={item}
+              className={activeCategory === item ? "active" : ""}
+            >
+              {item}
+            </p>
+          ))}
         </div>
-        </>
-        )}
-      </div>
-    </>
+        <div className="sort-by">
+          <h4>Sort By:</h4>
+          <Form.Select value={sortByPrice} onChange={handleSort}>
+            <option value="">Select</option>
+            <option value="lowToHigh">Price Low to High</option>
+            <option value="highToLow">Price High to Low</option>
+          </Form.Select>
+        </div>
+      </Col>
+      <Col md={10}>
+        <div>
+          <h1>Products Page</h1>
+          <hr />
+          {sortedData.length > 0 && (
+            <>
+              <Row>
+                {users.map((user) => (
+                  <Col sm={6} md={4} lg={3} key={user.id}>
+                    <Product
+                      title={user.title}
+                      price={user.price}
+                      image={user.images[0]}
+                      description={user.description}
+                      category={user.category.name}
+                    />
+                  </Col>
+                ))}
+              </Row>
+              <div className="mt-4">
+                <Button
+                  variant="secondary"
+                  onClick={() => setPage((prevPage) => prevPage - 1)}
+                  disabled={page === 0}
+                >
+                  Previous
+                </Button>{" "}
+                <span>Page: {page + 1}</span>{" "}
+                <Button variant="primary" onClick={() => setPage((prevPage) => prevPage + 1)}>
+                  Next
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Col>
+    </Row>
   );
 };
 
